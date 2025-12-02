@@ -297,6 +297,25 @@ button:hover {
   margin-top: 10px;
   font-size: 14px;
 }
+#quiz-container {
+  position: relative;
+  min-height: 500px; /* evita saltos verticales */
+}
+
+.question {
+  position: absolute;
+  width: 100%;
+  top: 0;
+  left: 0;
+
+  opacity: 0;
+  transform: translateY(15px);
+  transition: opacity .25s ease-out, transform .25s ease-out;
+}
+.question.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
 
 
 </style>
@@ -9021,33 +9040,30 @@ function mostrarPregunta(idx) {
 
   const p = preguntas[idx];
   const cont = document.getElementById("quiz-container");
-  cont.innerHTML = "";
 
-  // Contenedor principal
-  const box = document.createElement("div");
-  box.className = "question active";
-
+  // Crear pregunta NUEVA pero manteniendo contenedor fijo
+  const newBox = document.createElement("div");
+  newBox.className = "question";
+  
   // Título
   const titulo = document.createElement("h2");
   titulo.textContent = `Pregunta ${idx + 1} / ${preguntas.length}`;
   titulo.style.textAlign = "center";
   titulo.style.color = "#602b7a";
-  titulo.style.width = "100%";
-  box.appendChild(titulo);
+  newBox.appendChild(titulo);
 
   // Columnas
   const colPregunta = document.createElement("div");
   colPregunta.className = "col-pregunta";
-
   const colRespuestas = document.createElement("div");
   colRespuestas.className = "col-respuestas";
 
-  // Imagen pregunta
+  // Imagen de pregunta
   const imgP = new Image();
   imgP.src = p.pregunta;
   colPregunta.appendChild(imgP);
 
-  // Línea vertical
+  // Divider
   const divider = document.createElement("div");
   divider.className = "divider";
 
@@ -9058,36 +9074,26 @@ function mostrarPregunta(idx) {
   p.respuestas.forEach((r, i) => {
     const answerBox = document.createElement("div");
     answerBox.className = "answer-box";
-
-    if (p.seleccionadas.includes(i)) {
-      answerBox.classList.add("selected");
-    }
+    if (p.seleccionadas.includes(i)) answerBox.classList.add("selected");
 
     const imgR = new Image();
     imgR.src = r.src;
     imgR.dataset.correcta = r.correcta;
     answerBox.dataset.correcta = r.correcta ? "true" : "false";
-
     answerBox.appendChild(imgR);
 
     answerBox.onclick = () => {
-
-    // En modo examen, si ya fue respondida, NO permitir cambiar
-    if (modoExamen && p.respondida) return;
-
-    if (p.tipo === "simple") {
+      if (modoExamen && p.respondida) return;
+      if (p.tipo === "simple") {
         ans.querySelectorAll(".answer-box").forEach(b => b.classList.remove("selected"));
         p.seleccionadas = [i];
         answerBox.classList.add("selected");
-    } else {
+      } else {
         answerBox.classList.toggle("selected");
-        if (answerBox.classList.contains("selected")) {
-            p.seleccionadas.push(i);
-        } else {
-            p.seleccionadas = p.seleccionadas.filter(x => x !== i);
-        }
-    }
-};
+        if (answerBox.classList.contains("selected")) p.seleccionadas.push(i);
+        else p.seleccionadas = p.seleccionadas.filter(x => x !== i);
+      }
+    };
 
     ans.appendChild(answerBox);
   });
@@ -9097,7 +9103,7 @@ function mostrarPregunta(idx) {
   // Botón comprobar
   const btn = document.createElement("button");
   btn.textContent = "Comprobar";
-  btn.onclick = () => comprobar(p, box);
+  btn.onclick = () => comprobar(p, newBox);
   colRespuestas.appendChild(btn);
 
   // Resultado
@@ -9106,20 +9112,28 @@ function mostrarPregunta(idx) {
   res.textContent = p.resultado;
   colRespuestas.appendChild(res);
 
-  // Añadir todo al contenedor principal
-  box.appendChild(colPregunta);
-  box.appendChild(divider);
-  box.appendChild(colRespuestas);
+  newBox.appendChild(colPregunta);
+  newBox.appendChild(divider);
+  newBox.appendChild(colRespuestas);
 
-  cont.appendChild(box);
+  // Insertar transición
+  const oldBox = cont.querySelector(".question");
+  if (oldBox) {
+    oldBox.classList.remove("visible");
+    setTimeout(() => oldBox.remove(), 250);
+  }
+
+  cont.appendChild(newBox);
+
+  requestAnimationFrame(() => {
+    newBox.classList.add("visible");
+  });
 
   actualizarBotones();
-
-  // Ajustar altura de las respuestas
-  setTimeout(ajustarAlturaRespuestas, 50);
-
   precargarSiguiente();
+  setTimeout(ajustarAlturaRespuestas, 80);
 }
+
 
 
 /* -------------------------------------------------------
@@ -9288,4 +9302,5 @@ function generarTestAleatorio() {
 </script>
 </body>
 </html>
+
 
