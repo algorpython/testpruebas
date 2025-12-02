@@ -9043,23 +9043,23 @@ function mostrarPregunta(idx) {
   titulo.style.width = "100%";
   box.appendChild(titulo);
 
-  // Columnas
+  // Columnas layout
   const colPregunta = document.createElement("div");
   colPregunta.className = "col-pregunta";
 
   const colRespuestas = document.createElement("div");
   colRespuestas.className = "col-respuestas";
 
-  // Imagen pregunta
+  // Imagen de la pregunta
   const imgP = new Image();
   imgP.src = p.pregunta;
   colPregunta.appendChild(imgP);
 
-  // Línea vertical
+  // Línea vertical separadora
   const divider = document.createElement("div");
   divider.className = "divider";
 
-  // Respuestas
+  // Contenedor de respuestas
   const ans = document.createElement("div");
   ans.className = "answers";
 
@@ -9079,23 +9079,22 @@ function mostrarPregunta(idx) {
     answerBox.appendChild(imgR);
 
     answerBox.onclick = () => {
+      // 🚫 En modo examen, si ya se respondió, bloquear
+      if (modoExamen && p.respondida) return;
 
-    // En modo examen, si ya fue respondida, NO permitir cambiar
-    if (modoExamen && p.respondida) return;
-
-    if (p.tipo === "simple") {
+      if (p.tipo === "simple") {
         ans.querySelectorAll(".answer-box").forEach(b => b.classList.remove("selected"));
         p.seleccionadas = [i];
         answerBox.classList.add("selected");
-    } else {
+      } else {
         answerBox.classList.toggle("selected");
         if (answerBox.classList.contains("selected")) {
-            p.seleccionadas.push(i);
+          p.seleccionadas.push(i);
         } else {
-            p.seleccionadas = p.seleccionadas.filter(x => x !== i);
+          p.seleccionadas = p.seleccionadas.filter(x => x !== i);
         }
-    }
-};
+      }
+    };
 
     ans.appendChild(answerBox);
   });
@@ -9108,26 +9107,52 @@ function mostrarPregunta(idx) {
   btn.onclick = () => comprobar(p, box);
   colRespuestas.appendChild(btn);
 
-  // Resultado
+  // Resultado de la respuesta
   const res = document.createElement("div");
   res.className = "result";
   res.textContent = p.resultado;
   colRespuestas.appendChild(res);
 
-  // Añadir todo al contenedor principal
+  // Ensamblar el layout completo
   box.appendChild(colPregunta);
   box.appendChild(divider);
   box.appendChild(colRespuestas);
+
+  // 🔹 Inicialmente ocultamos mientras se cargan imágenes
+  box.style.opacity = "0";
 
   cont.appendChild(box);
 
   actualizarBotones();
 
-  // Ajustar altura de las respuestas
+  // Pre-carga siguiente
+  precargarSiguiente();
+
+  // Ajuste tras construcción
   setTimeout(ajustarAlturaRespuestas, 50);
 
-  precargarSiguiente();
+  // ✨ PRE-CARGA DE TODAS LAS IMÁGENES DE ESTA PREGUNTA
+  const imgs = box.querySelectorAll("img");
+  let cargadas = 0;
+
+  const finCarga = () => {
+    cargadas++;
+    if (cargadas === imgs.length) {
+      box.style.transition = "opacity 0.3s ease-in-out";
+      box.style.opacity = "1";
+    }
+  };
+
+  imgs.forEach(img => {
+    if (img.complete) {
+      finCarga();
+    } else {
+      img.onload = finCarga;
+      img.onerror = finCarga;
+    }
+  });
 }
+
 
 
 /* -------------------------------------------------------
@@ -9302,5 +9327,6 @@ window.addEventListener("load", () => {
 
 </body>
 </html>
+
 
 
