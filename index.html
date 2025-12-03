@@ -6,33 +6,6 @@
 <title>🧠 Test Interactivo Python</title>
 
 <style>
-    .hidden {
-  visibility: hidden;
-}
-
-.loader {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: #f6f5fa;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  color: #602b7a;
-  z-index: 5000;
-}
-
-body {
-    opacity: 0;
-    transition: opacity 0.3s ease-in;
-}
-body.loaded {
-    opacity: 1;
-}
-
 body {
   font-family: "Segoe UI", Arial, sans-serif;
   background: #f7f7fa;
@@ -324,16 +297,30 @@ button:hover {
   margin-top: 10px;
   font-size: 14px;
 }
+#quiz-container {
+  position: relative;
+  min-height: 500px; /* evita saltos verticales */
+}
+
+.question {
+  position: absolute;
+  width: 100%;
+  top: 0;
+  left: 0;
+
+  opacity: 0;
+  transform: translateY(15px);
+  transition: opacity .25s ease-out, transform .25s ease-out;
+}
+.question.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
 
 
 </style>
 </head>
 <body>
-    <body class="hidden">
-<div id="loader" class="loader">
-  <p>Cargando Test...</p>
-</div>
-
 <div id="login-overlay">
     <div id="login-box">
         <h2>Acceso al Test</h2>
@@ -9047,38 +9034,6 @@ function actualizarMenu() {
 /* -------------------------------------------------------
    3) Mostrar una pregunta
 --------------------------------------------------------*/
-async function precalcularDimensiones() {
-  for (const p of preguntas) {
-
-    // Dimensiones de la imagen de pregunta
-    await new Promise(resolve => {
-      const img = new Image();
-      img.src = p.pregunta;
-      img.onload = () => {
-        p.wP = img.width;
-        p.hP = img.height;
-        resolve();
-      };
-      img.onerror = resolve;
-    });
-
-    // Dimensiones de las imágenes de respuestas
-    for (const r of p.respuestas) {
-      await new Promise(resolve => {
-        const img = new Image();
-        img.src = r.src;
-        img.onload = () => {
-          r.w = img.width;
-          r.h = img.height;
-          resolve();
-        };
-        img.onerror = resolve;
-      });
-    }
-
-  }
-}
-
 function mostrarPregunta(idx) {
   indiceActual = idx;
   actualizarMenu();
@@ -9087,9 +9042,11 @@ function mostrarPregunta(idx) {
   const cont = document.getElementById("quiz-container");
   cont.innerHTML = "";
 
-  // Contenedor principal oculto mientras se ajusta
+  // Contenedor principal
   const box = document.createElement("div");
   box.className = "question";
+
+  // Ocultar mientras cargan imágenes
   box.style.opacity = "0";
 
   // Título
@@ -9097,9 +9054,10 @@ function mostrarPregunta(idx) {
   titulo.textContent = `Pregunta ${idx + 1} / ${preguntas.length}`;
   titulo.style.textAlign = "center";
   titulo.style.color = "#602b7a";
+  titulo.style.width = "100%";
   box.appendChild(titulo);
 
-  // Columnas principales
+  // Columnas
   const colPregunta = document.createElement("div");
   colPregunta.className = "col-pregunta";
 
@@ -9109,14 +9067,9 @@ function mostrarPregunta(idx) {
   // Imagen pregunta
   const imgP = new Image();
   imgP.src = p.pregunta;
-  // 🟣 Dimensiones reales ya precargadas
-  if (p.wP && p.hP) {
-    imgP.width = p.wP;
-    imgP.height = p.hP;
-  }
   colPregunta.appendChild(imgP);
 
-  // Divider
+  // Línea vertical
   const divider = document.createElement("div");
   divider.className = "divider";
 
@@ -9134,16 +9087,12 @@ function mostrarPregunta(idx) {
 
     const imgR = new Image();
     imgR.src = r.src;
-    if (r.w && r.h) {
-      imgR.width = r.w;
-      imgR.height = r.h;
-    }
     imgR.dataset.correcta = r.correcta;
     answerBox.dataset.correcta = r.correcta ? "true" : "false";
-
     answerBox.appendChild(imgR);
 
     answerBox.onclick = () => {
+      // En modo examen, si ya fue respondida, NO permitir cambiar
       if (modoExamen && p.respondida) return;
 
       if (p.tipo === "simple") {
@@ -9177,7 +9126,7 @@ function mostrarPregunta(idx) {
   res.textContent = p.resultado;
   colRespuestas.appendChild(res);
 
-  // Ensamblar
+  // Añadir al layout
   box.appendChild(colPregunta);
   box.appendChild(divider);
   box.appendChild(colRespuestas);
@@ -9188,13 +9137,32 @@ function mostrarPregunta(idx) {
   precargarSiguiente();
 
   // ==========================
-  // 📌 Ajuste visual FINAL
+  // 📌 PRE-CARGA DE IMÁGENES
   // ==========================
-  setTimeout(() => {
-    ajustarAlturaRespuestas();
-    box.style.transition = "opacity .25s ease-in-out";
-    box.style.opacity = "1";
-  }, 20);
+  const imgs = box.querySelectorAll("img");
+  const total = imgs.length;
+  let loaded = 0;
+
+  function checkComplete() {
+    loaded++;
+    if (loaded === total) {
+      // Ajustar alturas AHORA que sí tienen tamaño real
+      ajustarAlturaRespuestas();
+
+      // Mostrar suavemente
+      box.style.transition = "opacity .25s ease-in-out";
+      box.style.opacity = "1";
+    }
+  }
+
+  imgs.forEach(img => {
+    if (img.complete && img.naturalHeight > 0) {
+      checkComplete();
+    } else {
+      img.onload = checkComplete;
+      img.onerror = checkComplete;
+    }
+  });
 }
 
 
@@ -9361,31 +9329,8 @@ function generarTestAleatorio() {
 }
 
 </script>
-  <script>
-window.addEventListener("load", () => {
-    document.body.classList.add("loaded");
-});
-
-      window.addEventListener("load", () => {
-    setTimeout(() => {
-        document.body.classList.remove("hidden");
-        const loader = document.getElementById("loader");
-        if(loader) loader.remove();
-        mostrarPregunta(0);
-    }, 50);
-});
-async function iniciarTest() {
-  await precalcularDimensiones(); // 🔥 asegura tamaños antes de dibujar
-  mostrarPregunta(0);
-}
-
-window.addEventListener("load", iniciarTest);
-
-</script>
-
 </body>
 </html>
-
 
 
 
