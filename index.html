@@ -6,6 +6,11 @@
 <title>🧠 Test Interactivo Python</title>
 
 <style>
+  #controls {
+  position: relative;
+  z-index: 10; /* los trae al frente */
+}
+
 body {
   font-family: "Segoe UI", Arial, sans-serif;
   background: #f7f7fa;
@@ -303,15 +308,14 @@ button:hover {
 }
 
 .question {
-  position: absolute;
+  position: relative; /* antes era absolute - lo quitamos */
   width: 100%;
-  top: 0;
-  left: 0;
-
+  margin-bottom: 30px; /* espacio extra para los botones */
   opacity: 0;
   transform: translateY(15px);
   transition: opacity .25s ease-out, transform .25s ease-out;
 }
+
 .question.visible {
   opacity: 1;
   transform: translateY(0);
